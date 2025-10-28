@@ -6,7 +6,7 @@ on:
     paths:
       - 'data/portfolios/*.csv'
       - 'data/portfolios_depositaria/*.csv'
-    types: [added, modified]  # esclude le cancellazioni
+    
   workflow_dispatch:  # Permette esecuzione manuale
 
 jobs:
