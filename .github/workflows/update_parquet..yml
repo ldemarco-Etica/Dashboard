@@ -1,0 +1,67 @@
+name: Update Parquet Files
+
+# Trigger quando vengono caricati nuovi CSV
+on:
+  push:
+    paths:
+      - 'data/portfolios/*.csv'
+      - 'data/portfolios_depositaria/*.csv'
+  workflow_dispatch:  # Permette esecuzione manuale
+
+jobs:
+  update-parquet:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. Checkout del repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Necessario per git history completo
+      
+      # 2. Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      # 3. Installa dipendenze
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas pyarrow numpy
+      
+      # 4. Esegui aggiornamento Parquet
+      - name: Update Parquet files
+        run: |
+          python scripts/update_parquet_auto.py
+      
+      # 5. Configura Git per commit
+      - name: Configure Git
+        run: |
+          git config --global user.name 'GitHub Actions Bot'
+          git config --global user.email 'actions@github.com'
+      
+      # 6. Commit e Push dei Parquet aggiornati
+      - name: Commit and push changes
+        run: |
+          git add data/consolidated/*.parquet
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "🤖 Auto-update: Parquet files aggiornati [skip ci]"
+            git push
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      # 7. Notifica risultato
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 📊 Aggiornamento Parquet Completato" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ File Parquet aggiornati con successo" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date)" >> $GITHUB_STEP_SUMMARY
