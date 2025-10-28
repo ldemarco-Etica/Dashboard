@@ -310,7 +310,7 @@ class AutoParquetUpdater:
         
         # Converti tipi
         df['DataRiferimento'] = pd.to_datetime(df['DataRiferimento'], format='%Y%m%d', errors='coerce')
-        df['PesoPort'] = pd.to_numeric(df['PesoPort'], errors='coerce') 
+        df['PesoPort'] = pd.to_numeric(df['PesoPort'], errors='coerce') *100
         df['PesoBmk'] = pd.to_numeric(df['PesoBmk'], errors='coerce')
         
         # Rimuovi righe senza data
