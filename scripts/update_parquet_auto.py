@@ -52,7 +52,7 @@ class AutoParquetUpdater:
         # Mapping fondi depositaria
         self.fund_mapping = {
             88: "Etica Azionario",
-            83: "Etica Bilanciato", 
+            83: "Etica Bilanciato",    
             98: "Etica Transizione Climatica",
             99: "Etica Obiettivo Sociale",
             89: "Etica Rendita Bilanciata",
@@ -105,7 +105,7 @@ class AutoParquetUpdater:
         for csv in all_csv:
             # Estrai data dal nome file (assumendo formato YYYYMMDD.csv)
             try:
-                date_str = csv.stem  # Nome senza .csv
+                date_str = csv.stem    # Nome senza .csv
                 file_date = datetime.strptime(date_str, '%Y%m%d').date()
                 
                 if file_date not in existing_dates:
@@ -114,9 +114,11 @@ class AutoParquetUpdater:
                 else:
                     logger.info(f"  ⊘ Esiste: {csv.name}")
             except ValueError:
-                # Se il nome non è una data, carica comunque
-                logger.warning(f"  ⚠️ Nome file non standard: {csv.name}, carico comunque")
-                new_files.append(csv)
+                # --- INIZIO MODIFICA ---
+                # Se il nome non è una data, IGNORA
+                logger.warning(f"  ⚠️ Nome file non standard: {csv.name}. File ignorato. (Formato atteso: YYYYMMDD.csv)")
+                # Non fare new_files.append(csv)
+                # --- FINE MODIFICA ---
         
         return new_files
     
@@ -145,8 +147,10 @@ class AutoParquetUpdater:
                 else:
                     logger.info(f"  ⊘ Esiste: {csv.name}")
             except ValueError:
-                logger.warning(f"  ⚠️ Nome file non standard: {csv.name}, carico comunque")
-                new_files.append(csv)
+                # --- INIZIO MODIFICA ---
+                logger.warning(f"  ⚠️ Nome file non standard: {csv.name}. File ignorato. (Formato atteso: YYYYMMDD.csv)")
+                # Non fare new_files.append(csv)
+                # --- FINE MODIFICA ---
         
         return new_files
     
@@ -159,13 +163,19 @@ class AutoParquetUpdater:
         logger.info(f"📥 Processando {len(new_files)} nuovi CSV portfolio...")
         
         try:
-            # Carica Parquet esistente
+            # --- INIZIO MODIFICA ---
+            # Carica Parquet esistente e ottieni le date
+            existing_dates = set()
             if self.portfolio_parquet.exists():
                 existing_data = pd.read_parquet(self.portfolio_parquet)
                 logger.info(f"  Caricati {len(existing_data):,} record esistenti")
+                if not existing_data.empty:
+                    existing_dates = set(existing_data['DataRiferimento'].dt.date.unique())
+                    logger.info(f"  Trovate {len(existing_dates)} date uniche esistenti.")
             else:
                 existing_data = pd.DataFrame()
                 logger.info("  Creazione nuovo Parquet")
+            # --- FINE MODIFICA ---
             
             # Carica e processa nuovi CSV
             all_new_data = []
@@ -174,14 +184,41 @@ class AutoParquetUpdater:
                 new_data = self._load_portfolio_csv(csv_file)
                 
                 if new_data.empty:
-                    logger.warning(f"    ⚠️ Nessun dato valido, skip")
+                    logger.warning(f"  \t ⚠️ Nessun dato valido, skip")
                     continue
                 
-                logger.info(f"    ✓ {len(new_data):,} righe valide")
-                all_new_data.append(new_data)
+                # --- INIZIO MODIFICA ---
+                # Controllo robusto sulle date prima di aggiungere
+                new_data_dates = set(new_data['DataRiferimento'].dt.date.unique())
+                
+                # Trova le date che sono *veramente* nuove
+                truly_new_dates = new_data_dates - existing_dates
+                
+                if not truly_new_dates:
+                    logger.warning(f"  \t ⚠️ Il file {csv_file.name} contiene solo date ({new_data_dates}) già presenti nel Parquet. File saltato.")
+                    continue # Salta al prossimo file
+                
+                # Se ci sono date sovrapposte, avvisa e filtra
+                overlapping_dates = new_data_dates.intersection(existing_dates)
+                if overlapping_dates:
+                    logger.warning(f"  \t ⚠️ Trovate date sovrapposte in {csv_file.name}: {overlapping_dates}")
+                    logger.warning(f"  \t ℹ️ Saranno caricate solo le {len(truly_new_dates)} date nuove.")
+                
+                # Filtra il dataframe per tenere solo le righe con date nuove
+                filtered_new_data = new_data[new_data['DataRiferimento'].dt.date.isin(truly_new_dates)].copy()
+                
+                if filtered_new_data.empty:
+                     logger.info(f"  \t ℹ️ Nessun dato valido dopo il filtraggio per date in {csv_file.name}.")
+                     continue
+                
+                logger.info(f"  \t ✓ {len(filtered_new_data):,} righe valide per {len(truly_new_dates)} date nuove.")
+                all_new_data.append(filtered_new_data)
+                # --- FINE MODIFICA ---
             
             if not all_new_data:
-                logger.error("❌ Nessun dato valido da aggiungere")
+                # --- INIZIO MODIFICA ---
+                logger.info("ℹ️ Nessun dato valido da aggiungere dopo il controllo delle date.")
+                # --- FINE MODIFICA ---
                 return False
             
             # Unisci tutti i nuovi dati
@@ -232,13 +269,19 @@ class AutoParquetUpdater:
         logger.info(f"📥 Processando {len(new_files)} nuovi CSV depositaria...")
         
         try:
-            # Carica Parquet esistente
+            # --- INIZIO MODIFICA ---
+            # Carica Parquet esistente e ottieni le date
+            existing_dates = set()
             if self.depositaria_parquet.exists():
                 existing_data = pd.read_parquet(self.depositaria_parquet)
                 logger.info(f"  Caricati {len(existing_data):,} record esistenti")
+                if not existing_data.empty:
+                    existing_dates = set(existing_data['DataRiferimento'].dt.date.unique())
+                    logger.info(f"  Trovate {len(existing_dates)} date uniche esistenti.")
             else:
                 existing_data = pd.DataFrame()
                 logger.info("  Creazione nuovo Parquet")
+            # --- FINE MODIFICA ---
             
             # Carica e processa nuovi CSV
             all_new_data = []
@@ -247,14 +290,41 @@ class AutoParquetUpdater:
                 new_data = self._load_depositaria_csv(csv_file)
                 
                 if new_data.empty:
-                    logger.warning(f"    ⚠️ Nessun dato valido, skip")
+                    logger.warning(f"  \t ⚠️ Nessun dato valido, skip")
                     continue
                 
-                logger.info(f"    ✓ {len(new_data):,} righe valide")
-                all_new_data.append(new_data)
+                # --- INIZIO MODIFICA ---
+                # Controllo robusto sulle date prima di aggiungere
+                new_data_dates = set(new_data['DataRiferimento'].dt.date.unique())
+                
+                # Trova le date che sono *veramente* nuove
+                truly_new_dates = new_data_dates - existing_dates
+                
+                if not truly_new_dates:
+                    logger.warning(f"  \t ⚠️ Il file {csv_file.name} contiene solo date ({new_data_dates}) già presenti nel Parquet. File saltato.")
+                    continue # Salta al prossimo file
+                
+                # Se ci sono date sovrapposte, avvisa e filtra
+                overlapping_dates = new_data_dates.intersection(existing_dates)
+                if overlapping_dates:
+                    logger.warning(f"  \t ⚠️ Trovate date sovrapposte in {csv_file.name}: {overlapping_dates}")
+                    logger.warning(f"  \t ℹ️ Saranno caricate solo le {len(truly_new_dates)} date nuove.")
+                
+                # Filtra il dataframe per tenere solo le righe con date nuove
+                filtered_new_data = new_data[new_data['DataRiferimento'].dt.date.isin(truly_new_dates)].copy()
+
+                if filtered_new_data.empty:
+                     logger.info(f"  \t ℹ️ Nessun dato valido dopo il filtraggio per date in {csv_file.name}.")
+                     continue
+
+                logger.info(f"  \t ✓ {len(filtered_new_data):,} righe valide per {len(truly_new_dates)} date nuove.")
+                all_new_data.append(filtered_new_data)
+                # --- FINE MODIFICA ---
             
             if not all_new_data:
-                logger.error("❌ Nessun dato valido da aggiungere")
+                # --- INIZIO MODIFICA ---
+                logger.info("ℹ️ Nessun dato valido da aggiungere dopo il controllo delle date.")
+                # --- FINE MODIFICA ---
                 return False
             
             # Unisci tutti i nuovi dati
@@ -457,7 +527,7 @@ class AutoParquetUpdater:
             if depositaria_updated:
                 logger.info("  ✓ Depositaria Parquet aggiornato")
         else:
-            logger.info("❌ AGGIORNAMENTO FALLITO")
+            logger.info("ℹ️ NESSUN AGGIORNAMENTO ESEGUITO (dati già presenti o file vuoti).")
         logger.info("=" * 80)
         
         return portfolio_updated or depositaria_updated
@@ -473,7 +543,9 @@ def main():
         success = updater.run()
         
         # Exit code per GitHub Actions
-        sys.exit(0 if success else 1)
+        # Modificato: esce con successo (0) anche se non ci sono aggiornamenti
+        # Esce con errore (1) solo se c'è un'eccezione
+        sys.exit(0)
         
     except Exception as e:
         logger.error(f"💥 ERRORE CRITICO: {e}")
