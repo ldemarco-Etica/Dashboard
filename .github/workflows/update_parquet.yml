@@ -74,19 +74,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      # 8. Notifica risultato (Modificato per mostrare se skippato)
+# 8. Notifica risultato (Corretto)
       - name: Summary
         if: always() # Esegui sempre questo step
         run: |
           echo "## 📊 Aggiornamento Parquet" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Controlla l'output dello step 'filter'
-          # Nota: 'failure()' è un controllo di sicurezza nel caso lo step 'filter' fallisca
-          if ${{ steps.filter.outputs.csv_added == 'true' && failure() == false }}; then
+          # Logica corretta per il riepilogo:
+          
+          # 1. Controlla prima se il job è fallito
+          if [[ "${{ job.status }}" == "failure" ]]; then
+            echo "❌ Aggiornamento fallito durante l'esecuzione." >> $GITHUB_STEP_SUMMARY
+          
+          # 2. Se non è fallito, controlla se lo step 'filter' ha dato 'true'
+          elif [[ "${{ steps.filter.outputs.csv_added }}" == "true" ]]; then
             echo "✅ File Parquet aggiornati con successo (rilevati nuovi file CSV)." >> $GITHUB_STEP_SUMMARY
-          elif ${{ failure() }}; then
-             echo "❌ Aggiornamento fallito." >> $GITHUB_STEP_SUMMARY
+          
+          # 3. Se non è fallito e il filtro non era 'true', allora è stato saltato
           else
             echo "ℹ️ Nessun *nuovo* file CSV aggiunto nei percorsi monitorati. Aggiornamento saltato." >> $GITHUB_STEP_SUMMARY
           fi
