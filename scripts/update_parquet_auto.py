@@ -114,11 +114,10 @@ class AutoParquetUpdater:
                 else:
                     logger.info(f"  ⊘ Esiste: {csv.name}")
             except ValueError:
-                # --- INIZIO MODIFICA ---
-                # Se il nome non è una data, IGNORA
-                logger.warning(f"  ⚠️ Nome file non standard: {csv.name}. File ignorato. (Formato atteso: YYYYMMDD.csv)")
-                # Non fare new_files.append(csv)
-                # --- FINE MODIFICA ---
+                # --- MODIFICA: accetta anche file con nome non standard ---
+                logger.warning(f"  ⚠️ Nome file non standard: {csv.name}. Verrà comunque processato.")
+                new_files.append(csv)
+
         
         return new_files
     
@@ -147,10 +146,10 @@ class AutoParquetUpdater:
                 else:
                     logger.info(f"  ⊘ Esiste: {csv.name}")
             except ValueError:
-                # --- INIZIO MODIFICA ---
-                logger.warning(f"  ⚠️ Nome file non standard: {csv.name}. File ignorato. (Formato atteso: YYYYMMDD.csv)")
-                # Non fare new_files.append(csv)
-                # --- FINE MODIFICA ---
+                # --- MODIFICA: accetta anche file con nome non standard ---
+                logger.warning(f"  ⚠️ Nome file non standard: {csv.name}. Verrà comunque processato.")
+                new_files.append(csv)
+
         
         return new_files
     
