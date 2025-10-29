@@ -1,6 +1,6 @@
 name: Update Parquet Files
 
-# Trigger quando vengono caricati nuovi CSV
+# Trigger quando vengono caricati nuovi CSV (o modificati/eliminati)
 on:
   push:
     paths:
@@ -20,32 +20,49 @@ jobs:
         with:
           fetch-depth: 0  # Necessario per git history completo
       
-      # 2. Setup Python
+      # 2. NUOVO STEP: Controlla se i file CSV sono stati 'aggiunti'
+      - name: Check for added CSV files
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # Controlla solo i file aggiunti ('added') nei percorsi specificati
+          filters: |
+            csv_added:
+              - 'added': 
+                - 'data/portfolios/*.csv'
+                - 'data/portfolios_depositaria/*.csv'
+
+      # 3. Setup Python (Esegui solo se 'csv_added' è true)
       - name: Setup Python
+        if: steps.filter.outputs.csv_added == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
       
-      # 3. Installa dipendenze
+      # 4. Installa dipendenze (Esegui solo se 'csv_added' è true)
       - name: Install dependencies
+        if: steps.filter.outputs.csv_added == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install pandas pyarrow numpy
       
-      # 4. Esegui aggiornamento Parquet
+      # 5. Esegui aggiornamento Parquet (Esegui solo se 'csv_added' è true)
       - name: Update Parquet files
+        if: steps.filter.outputs.csv_added == 'true'
         run: |
           python scripts/update_parquet_auto.py
       
-      # 5. Configura Git per commit
+      # 6. Configura Git per commit (Esegui solo se 'csv_added' è true)
       - name: Configure Git
+        if: steps.filter.outputs.csv_added == 'true'
         run: |
           git config --global user.name 'GitHub Actions Bot'
           git config --global user.email 'actions@github.com'
       
-      # 6. Commit e Push dei Parquet aggiornati
+      # 7. Commit e Push dei Parquet aggiornati (Esegui solo se 'csv_added' è true)
       - name: Commit and push changes
+        if: steps.filter.outputs.csv_added == 'true'
         run: |
           git add data/consolidated/*.parquet
           if git diff --staged --quiet; then
@@ -57,12 +74,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      # 7. Notifica risultato
+      # 8. Notifica risultato (Modificato per mostrare se skippato)
       - name: Summary
-        if: always()
+        if: always() # Esegui sempre questo step
         run: |
-          echo "## 📊 Aggiornamento Parquet Completato" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Aggiornamento Parquet" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ File Parquet aggiornati con successo" >> $GITHUB_STEP_SUMMARY
+          
+          # Controlla l'output dello step 'filter'
+          # Nota: 'failure()' è un controllo di sicurezza nel caso lo step 'filter' fallisca
+          if ${{ steps.filter.outputs.csv_added == 'true' && failure() == false }}; then
+            echo "✅ File Parquet aggiornati con successo (rilevati nuovi file CSV)." >> $GITHUB_STEP_SUMMARY
+          elif ${{ failure() }}; then
+             echo "❌ Aggiornamento fallito." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ Nessun *nuovo* file CSV aggiunto nei percorsi monitorati. Aggiornamento saltato." >> $GITHUB_STEP_SUMMARY
+          fi
+          
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Timestamp:** $(date)" >> $GITHUB_STEP_SUMMARY
