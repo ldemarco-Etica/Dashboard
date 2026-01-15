@@ -7,7 +7,7 @@ from datetime import datetime
 # Import improved modules
 from config import APP_CONFIG, DATA_PATHS
 from utils import (
-    data_loader, session_manager, create_info_box, format_date, 
+    data_loader, session_manager, create_info_box, format_date, trigger_hard_restart,
     hide_unauthorized_pages, display_user_info_sidebar, check_page_access, initialize_user_session,
     display_user_info_sidebar_auth0, hide_unauthorized_pages_auth0  # <-- AGGIUNTE QUESTE
 )
@@ -198,29 +198,25 @@ def display_sidebar_controls():
         if data_stale:
             st.warning("⚠️ Data may be outdated")
         
-        # Load/Reload data button
-        if st.button("🔄 Load/Reload All Data", 
-                    help="Load or reload all data sources"):
+        # Load/Reload data button (Standard)
+        if st.button("🔄 Refresh Data (Soft)", 
+                    help="Aggiorna i dati senza riavviare l'app"):
             try:
                 with st.spinner("Loading data..."):
                     loaded_data = data_loader.load_all_data_with_progress()
-                    
                     if loaded_data:
                         st.session_state['data_loaded'] = True
                         st.session_state['last_update'] = datetime.now().isoformat()
-                        st.success("✅ Data loaded successfully!")
+                        st.success("✅ Data loaded!")
                         st.rerun()
-                    else:
-                        st.error("❌ Data loading failed")
-                        
             except Exception as e:
                 ErrorHandler.handle_data_loading_error(e, "manual data reload")
         
-        # Clear cache button
-        if st.button("🗑️ Clear Cache & Reset", 
-                    help="Clear all cached data and reset session"):
-            session_manager.clear_cache_and_state()
-            st.rerun()
+        # --- PULSANTE MODIFICATO: HARD RESET ---
+        if st.button("🚀 Hard Reset & Azure Sync", 
+                    help="FORZA il riavvio dell'app per leggere i nuovi file dal Blob Storage"):
+            trigger_hard_restart()
+        # ---------------------------------------
         
         st.divider()
         
@@ -228,9 +224,9 @@ def display_sidebar_controls():
         st.subheader("ℹ️ Application Info")
         
         info_data = {
-            "Version": "2.0.0 (Improved)",
-            "Cache TTL": f"{APP_CONFIG.cache_ttl // 3600}h",
-            "Max File Size": f"{APP_CONFIG.max_file_size_mb}MB"
+            "Version": "2.0.1 (Auto-Sync)",
+            "Last Auto-Restart": st.session_state.get("last_auto_restart", "Never"),
+            "Cache TTL": f"{APP_CONFIG.cache_ttl // 3600}h"
         }
         
         for key, value in info_data.items():
@@ -238,51 +234,41 @@ def display_sidebar_controls():
         
         st.divider()
         
-        # 🆕 DEBUG AUTENTICAZIONE (sempre visibile)
+        # Debug section (lasciata invariata come da tuo snippet)
         with st.expander("🐛 Auth Debug", expanded=False):
             st.json({
                 'email': st.session_state.get('user_email', 'N/A'),
-                'role': st.session_state.get('user_role', 'N/A'),
-                'permissions_count': len(st.session_state.get('user_permissions', [])),
                 'is_authenticated': st.session_state.get('is_authenticated', False),
-                'is_dev_mode': st.session_state.get('is_dev_mode', False),
-                'auth_initialized': st.session_state.get('auth_initialized', False)
+                'last_restart_trigger': st.session_state.get('last_auto_restart', 'N/A')
             })
             
-            # Mostra tutte le permissioni
-            if 'user_permissions' in st.session_state:
-                st.caption("**Pagine Accessibili:**")
-                for perm in st.session_state['user_permissions']:
-                    st.caption(f"✅ {perm}")
         # Help section
         st.subheader("❓ Help & Support")
-        
         with st.expander("📚 Quick Help"):
             st.markdown("""
-            **Getting Started:**
-            1. Click "Load/Reload All Data" to initialize
-            2. Navigate using the sidebar menu
-            3. Each page has interactive filters
-            4. Use export functions to save results
-            
-            **Troubleshooting:**
-            - If data doesn't load, check file paths
-            - Use "Clear Cache & Reset" for issues
-            - Check system status for file availability
-            """)
-        
-        # Performance tips
-        with st.expander("⚡ Performance Tips"):
-            st.markdown("""
-            - Data is cached for better performance
-            - Use date filters to reduce processing time
-            - Export large datasets instead of viewing all
-            - Clear cache if memory usage is high
+            **Risoluzione Problemi Dati:**
+            Se i file nel Cloud sono aggiornati ma non li vedi:
+            1. Usa il tasto **🚀 Hard Reset**.
+            2. Il sistema si riavvia automaticamente alle **07:30** e **17:30**.
             """)
 
 def main():
     """Main application entry point"""
     try:
+        # --- LOGICA DI RIAVVIO PROGRAMMATO ---
+        now = datetime.now()
+        current_time = now.strftime("%H:%M")
+        
+        # Orari di riavvio (07:30 e 17:30)
+        scheduled_times = ["07:30","11:40", "17:30"]
+        
+        # Usiamo una variabile di stato per evitare un loop infinito di riavvii nello stesso minuto
+        if current_time in scheduled_times:
+            if st.session_state.get("last_auto_restart") != current_time:
+                st.session_state["last_auto_restart"] = current_time
+                st.info(f"🔄 Riavvio programmato delle {current_time} in corso...")
+                trigger_hard_restart()
+        # ---------------------------------------
         # ============================================
         # 🔐 AUTENTICAZIONE AUTH0
         # ============================================

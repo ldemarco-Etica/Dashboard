@@ -7,6 +7,9 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any, Union
 import logging
+import os
+import sys
+import time
 
 from data_repository import data_repository
 from config import UI_CONFIG, APP_CONFIG
@@ -1030,6 +1033,18 @@ def hide_unauthorized_pages_auth0():
     
     css += "</style>"
     st.markdown(css, unsafe_allow_html=True)
+
+def trigger_hard_restart():
+    """Forza il riavvio completo del processo Python"""
+    # Pulizia preventiva della cache di Streamlit (opzionale ma consigliato)
+    st.cache_data.clear()
+    st.cache_resource.clear()
+    
+    # Piccola pausa per permettere a Streamlit di mostrare un messaggio se necessario
+    time.sleep(1)
+    
+    # Esecuzione del comando di sostituzione processo
+    os.execv(sys.executable, [sys.executable] + sys.argv)
 
 
 # Global instances
