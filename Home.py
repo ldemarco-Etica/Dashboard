@@ -2,7 +2,7 @@
 
 import streamlit as st
 import logging
-from datetime import datetime
+from datetime import datetime, time as dt_time
 
 # Import improved modules
 from config import APP_CONFIG, DATA_PATHS
@@ -28,6 +28,49 @@ st.set_page_config(
     layout=APP_CONFIG.layout,
     initial_sidebar_state="expanded"
 )
+
+def check_scheduled_restart():
+    """
+    Controlla se è ora di riavviare l'app automaticamente.
+    Riavvia alle 7:30 e 17:30 ogni giorno.
+    """
+    now = datetime.now()
+    current_time = now.time()
+    
+    # Orari di restart programmati
+    restart_times = [dt_time(7, 30), dt_time(14, 10), dt_time(17, 30)]
+    
+    # Controlla se siamo entro 1 minuto dall'orario di restart
+    for restart_time in restart_times:
+        time_now = datetime.combine(datetime.today(), current_time)
+        time_restart = datetime.combine(datetime.today(), restart_time)
+        time_diff_seconds = abs((time_now - time_restart).total_seconds())
+        
+        # Se siamo entro 60 secondi dall'orario di restart
+        if time_diff_seconds < 60:
+            # Verifica se non abbiamo già fatto un restart recente
+            last_restart = st.session_state.get('last_auto_restart')
+            
+            if last_restart is None:
+                # Primo restart della sessione
+                logger.info(f"🔄 Restart automatico programmato alle {restart_time.strftime('%H:%M')}")
+                st.session_state['last_auto_restart'] = now
+                st.cache_data.clear()
+                st.cache_resource.clear()
+                st.rerun()
+            else:
+                # Converti last_restart in datetime se è una stringa
+                if isinstance(last_restart, str):
+                    last_restart = datetime.fromisoformat(last_restart)
+                
+                # Riavvia solo se sono passati almeno 5 minuti dall'ultimo restart
+                minutes_since_last = (now - last_restart).total_seconds() / 60
+                if minutes_since_last > 5:
+                    logger.info(f"🔄 Restart automatico programmato alle {restart_time.strftime('%H:%M')}")
+                    st.session_state['last_auto_restart'] = now
+                    st.cache_data.clear()
+                    st.cache_resource.clear()
+                    st.rerun()
 
 def display_main_content():
     """Display main dashboard content"""
@@ -283,6 +326,10 @@ def display_sidebar_controls():
 def main():
     """Main application entry point"""
     try:
+        # ============================================
+        # ⏰ CONTROLLO RESTART AUTOMATICO
+        # ============================================
+        check_scheduled_restart()
         # ============================================
         # 🔐 AUTENTICAZIONE AUTH0
         # ============================================
