@@ -44,7 +44,7 @@ def check_scheduled_restart():
     current_time = now.time()
     
     # Orari di restart programmati
-    restart_times = [dt_time(7, 30), dt_time(17, 30)]
+    restart_times = [dt_time(7, 30), dt_time(13, 58), dt_time(17, 30)]
     
     # Controlla se siamo entro 1 minuto dall'orario di restart
     for restart_time in restart_times:
