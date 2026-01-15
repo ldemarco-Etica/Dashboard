@@ -2,7 +2,7 @@
 
 import streamlit as st
 import logging
-from datetime import datetime
+from datetime import datetime, time as dt_time
 
 # Import improved modules
 from config import APP_CONFIG, DATA_PATHS
@@ -12,7 +12,9 @@ from utils import (
     display_user_info_sidebar_auth0, hide_unauthorized_pages_auth0  # <-- AGGIUNTE QUESTE
 )
 from validators import ErrorHandler
-from auth_manager import auth_manager  
+from auth_manager import auth_manager
+import yaml
+
 
 # Setup logging
 logging.basicConfig(
@@ -29,8 +31,59 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+with open('secrets.yaml', 'r') as file:
+    st.secrets = yaml.safe_load(file)
+
+
+def check_scheduled_restart():
+    """
+    Controlla se è ora di riavviare l'app automaticamente.
+    Riavvia alle 7:30 e 17:30 ogni giorno.
+    """
+    now = datetime.now()
+    current_time = now.time()
+    
+    # Orari di restart programmati
+    restart_times = [dt_time(7, 30), dt_time(17, 30)]
+    
+    # Controlla se siamo entro 1 minuto dall'orario di restart
+    for restart_time in restart_times:
+        time_now = datetime.combine(datetime.today(), current_time)
+        time_restart = datetime.combine(datetime.today(), restart_time)
+        time_diff_seconds = abs((time_now - time_restart).total_seconds())
+        
+        # Se siamo entro 60 secondi dall'orario di restart
+        if time_diff_seconds < 60:
+            # Verifica se non abbiamo già fatto un restart recente
+            last_restart = st.session_state.get('last_auto_restart')
+            
+            if last_restart is None:
+                # Primo restart della sessione
+                logger.info(f"🔄 Restart automatico programmato alle {restart_time.strftime('%H:%M')}")
+                st.session_state['last_auto_restart'] = now
+                st.cache_data.clear()
+                st.cache_resource.clear()
+                st.rerun()
+            else:
+                # Converti last_restart in datetime se è una stringa
+                if isinstance(last_restart, str):
+                    last_restart = datetime.fromisoformat(last_restart)
+                
+                # Riavvia solo se sono passati almeno 5 minuti dall'ultimo restart
+                minutes_since_last = (now - last_restart).total_seconds() / 60
+                if minutes_since_last > 5:
+                    logger.info(f"🔄 Restart automatico programmato alle {restart_time.strftime('%H:%M')}")
+                    st.session_state['last_auto_restart'] = now
+                    st.cache_data.clear()
+                    st.cache_resource.clear()
+                    st.rerun()
+
+
 def display_main_content():
     """Display main dashboard content"""
+    logger.info("=" * 70)
+    logger.info("display_main_content")
+    logger.info("=" * 70)
     st.title(f"{APP_CONFIG.page_icon} {APP_CONFIG.page_title}")
     
     # Welcome section
@@ -121,6 +174,9 @@ def display_main_content():
 
 def display_system_status():
     """Display system status and data information"""
+    logger.info("=" * 70)
+    logger.info("display_system_status")
+    logger.info("=" * 70)
     with st.expander("🔧 System Status & Data Info", expanded=False):
         col1, col2 = st.columns(2)
         
@@ -183,11 +239,24 @@ def display_system_status():
                 st.caption(f"Session state size: {total_size / 1024 / 1024:.1f} MB")
             except:
                 pass
+            
+            # 🆕 Mostra info restart automatico
+            if 'last_auto_restart' in st.session_state:
+                last_restart = st.session_state['last_auto_restart']
+                if isinstance(last_restart, str):
+                    last_restart = datetime.fromisoformat(last_restart)
+                st.info(f"⏰ Ultimo restart automatico: {last_restart.strftime('%d/%m/%Y %H:%M:%S')}")
 
 def display_sidebar_controls():
     """Display sidebar controls"""
+    logger.info("=" * 70)
+    logger.info("display_sidebar_controls")
+    logger.info("=" * 70)
     with st.sidebar:
         st.header("🔧 System Controls")
+        
+        # 🆕 Restart Schedule Info
+        st.info("⏰ Restart automatico: 7:30 e 17:30")
         
         # Data loading section
         st.subheader("📊 Data Management")
@@ -282,7 +351,15 @@ def display_sidebar_controls():
 
 def main():
     """Main application entry point"""
+    logger.info("=" * 70)
+    logger.info("main")
+    logger.info("=" * 70)
     try:
+        # ============================================
+        # ⏰ CONTROLLO RESTART AUTOMATICO
+        # ============================================
+        check_scheduled_restart()
+        
         # ============================================
         # 🔐 AUTENTICAZIONE AUTH0
         # ============================================
@@ -293,22 +370,24 @@ def main():
         if 'code' in query_params:
             # Siamo in fase di callback dopo login
             with st.spinner("🔄 Completamento autenticazione..."):
-                success = auth_manager.handle_callback(query_params)
-                
-                if success:
-                    # Pulisci URL rimuovendo parametri callback
-                    st.query_params.clear()
-                    st.success("✅ Accesso effettuato con successo!")
-                    st.rerun()
-                else:
-                    st.error("❌ Autenticazione fallita. Riprova.")
-                    st.stop()
+                st.query_params.clear()
+                # success = auth_manager.handle_callback(query_params)
+                # 
+                # if success:
+                #     # Pulisci URL rimuovendo parametri callback
+                #     st.query_params.clear()
+                #     st.success("✅ Accesso effettuato con successo!")
+                #     st.rerun()
+                # else:
+                #     st.error("❌ Autenticazione fallita. Riprova.")
+                #     st.stop()
         
         # Verifica autenticazione
         if not auth_manager.is_authenticated():
+            pass
             # Mostra pulsante login
-            auth_manager.show_login_button()
-            st.stop()
+            # auth_manager.show_login_button()
+            # st.stop()
         
         # ============================================
         # 📊 UTENTE AUTENTICATO - Mostra Dashboard
@@ -322,7 +401,7 @@ def main():
         
         # ✅ CORREZIONE: Usa le funzioni Auth0
         display_user_info_sidebar_auth0()  
-        hide_unauthorized_pages_auth0()    
+        # hide_unauthorized_pages_auth0()    
         
         # Auto-load data (resto del codice rimane uguale...)
         if not st.session_state.get('data_loaded', False):
