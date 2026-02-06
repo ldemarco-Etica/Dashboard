@@ -6,7 +6,7 @@ ROLE_PERMISSIONS = {
     'admin': [
         'Home', 'AUM', 'TEV', 'Duration', 'Allocazioni', 
         'Analisi titoli', 'Lookthrough', 'Movimentazioni', 
-        'Limiti Regolamentari', 'Limiti da CDA', 'Turnover'
+        'Limiti Regolamentari', 'Limiti da CDA', 'Turnover', 'Volatilità'
     ],
     'analyst': [
         'Home', 'AUM', 'TEV', 'Duration', 'Allocazioni', 
