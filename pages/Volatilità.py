@@ -12,7 +12,7 @@ from utils import check_page_access_auth0, format_date
 # ============================================
 # 🔐 CONTROLLO ACCESSO
 # ============================================
-'check_page_access_auth0("Volatilità")
+# check_page_access_auth0("Volatilità")
 
 # ============================================
 # CONFIGURAZIONE
@@ -508,3 +508,4 @@ st.markdown("""
 </div>
 
 """, unsafe_allow_html=True)
+
