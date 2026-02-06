@@ -12,7 +12,7 @@ from utils import check_page_access_auth0, format_date
 # ============================================
 # 🔐 CONTROLLO ACCESSO
 # ============================================
-check_page_access_auth0("Volatilità")
+'check_page_access_auth0("Volatilità")
 
 # ============================================
 # CONFIGURAZIONE
@@ -506,4 +506,5 @@ st.markdown("""
 <div style="text-align: center; color: gray; font-size: 0.8em;">
     Analisi Volatilità - Dashboard Portfolio Etica SGR
 </div>
+
 """, unsafe_allow_html=True)
