@@ -93,9 +93,18 @@ if vista == "Confronto fondi":
         
         # Raggruppiamo per data sommando solo i valori positivi
         df_agg_total = df_long.groupby("Data")["AUM_Positivo"].sum().reset_index()
+                # Qui usiamo df_tot_original perché vogliamo l'ultima data disponibile in assoluto,
+        # indipendentemente dal filtro temporale applicato sopra (o puoi usare df_tot se preferisci)
+        df_melted = df_tot_original.melt(id_vars='Data', var_name='Fondo', value_name='AUM').dropna(subset=['AUM'])
         
-        st.subheader("Andamento AUM Totale (Aggregato)")
-        st.info("Nota: I valori negativi dei singoli fondi sono considerati come 0 nel calcolo del totale giornaliero.")
+        # Troviamo l'ultima data valida per ogni fondo
+        df_last_valid = df_melted.loc[df_melted.groupby('Fondo')['Data'].idxmax()].copy()
+        
+        # Anche qui, per coerenza, se vuoi mostrare il totale "sanitizzato" nel titolo:
+        aum_totale = df_last_valid["AUM"].clip(lower=0).sum()
+        ultima_data_generale = df_tot_original["Data"].max()
+        st.subheader("Andamento AUM (AUM Totale al {format_date(ultima_data_generale.date())}: €{aum_totale:,.2f})")
+        
 
         fig_trend = px.area(
             df_agg_total, 
@@ -112,18 +121,9 @@ if vista == "Confronto fondi":
         # 2. GRAFICO ESISTENTE: BAR CHART (SNAPSHOT ULTIMA DATA)
         # ---------------------------------------------------------
         
-        # Qui usiamo df_tot_original perché vogliamo l'ultima data disponibile in assoluto,
-        # indipendentemente dal filtro temporale applicato sopra (o puoi usare df_tot se preferisci)
-        df_melted = df_tot_original.melt(id_vars='Data', var_name='Fondo', value_name='AUM').dropna(subset=['AUM'])
+
         
-        # Troviamo l'ultima data valida per ogni fondo
-        df_last_valid = df_melted.loc[df_melted.groupby('Fondo')['Data'].idxmax()].copy()
-        
-        # Anche qui, per coerenza, se vuoi mostrare il totale "sanitizzato" nel titolo:
-        aum_totale = df_last_valid["AUM"].clip(lower=0).sum()
-        ultima_data_generale = df_tot_original["Data"].max()
-        
-        st.subheader(f"Dettaglio per Fondo (AUM Totale al {format_date(ultima_data_generale.date())}: €{aum_totale:,.2f})")
+        st.subheader(f"Dettaglio per Fondo ")
         
         fig_bar = px.bar(
             df_last_valid.sort_values("AUM", ascending=False),
