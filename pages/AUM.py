@@ -93,7 +93,7 @@ if vista == "Confronto fondi":
             label=f"AUM Totale (al {format_date(ultima_data_generale.date())})",
             value=f"€ {aum_totale:,.2f}"
         )
-        st.markdown("---")
+
 
         # --- GRAFICO 1: ANDAMENTO STORICO AGGREGATO (NO NEGATIVI) ---
         # Creiamo una copia per il calcolo storico
@@ -104,7 +104,7 @@ if vista == "Confronto fondi":
         # Raggruppiamo per data sommando i valori puliti
         df_agg_history = df_history.groupby("Data")["AUM_Clean"].sum().reset_index()
         
-        st.subheader("Andamento AUM Complessivo")
+     
    
         
         fig_trend = px.area(
