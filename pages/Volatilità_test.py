@@ -19,7 +19,6 @@ from utils import check_page_access_auth0, format_date
 # ============================================
 st.set_page_config(layout="wide", page_title="Analisi Volatilità")
 st.title("📊 Analisi Volatilità")
-st.info("ℹ️ I calcoli di volatilità e rischio sono elaborati sulla base delle **quote lorde**.")
 
 # Parametri di calcolo
 ROLLING_WINDOW = 260  # giorni lavorativi in un anno
@@ -178,8 +177,7 @@ tab1, tab2 = st.tabs(["📊 Confronto Fondi", "📈 Analisi Serie Storica"])
 # TAB 1: CONFRONTO FONDI
 # ============================================
 with tab1:
-    st.subheader("📊 Confronto Metriche di Volatilità")
-    st.info("💡 Snapshot delle metriche di rischio calcolate sulle **quote lorde** per tutti i fondi.")
+    st.info("Metriche di rischio calcolate sulle **quote lorde** per tutti i fondi.")
     
     # Calcola metriche per tutti i fondi
     with st.spinner("Calcolo metriche in corso..."):
@@ -292,3 +290,4 @@ st.markdown("""
     Analisi Volatilità (Metodologia su Quote Lorde) - Dashboard Portfolio Etica SGR
 </div>
 """, unsafe_allow_html=True)
+
