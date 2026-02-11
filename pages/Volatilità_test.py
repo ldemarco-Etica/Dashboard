@@ -222,21 +222,6 @@ with tab1:
             }
         )
         
-        # Grafici
-        col_chart1, col_chart2 = st.columns(2)
-        with col_chart1:
-            fig_vol = go.Figure()
-            colors = ['steelblue', 'lightseagreen', 'mediumslateblue']
-            for i, col in enumerate(['Volatilità 1Y Attuale (%)', 'Volatilità 3Y (%)', 'Volatilità 5Y (%)']):
-                fig_vol.add_trace(go.Bar(x=df_summary['Fondo'], y=df_summary[col], name=col.split('(')[0], marker_color=colors[i]))
-            
-            fig_vol.update_layout(title="Confronto Volatilità (Quote Lorde)", barmode='group', height=500, xaxis_tickangle=-45)
-            st.plotly_chart(fig_vol, use_container_width=True)
-            
-        with col_chart2:
-            fig_dd = go.Figure(go.Bar(x=df_summary['Fondo'], y=df_summary['Max Drawdown Storico (%)'], marker_color='crimson'))
-            fig_dd.update_layout(title="Max Drawdown Storico", height=500, xaxis_tickangle=-45)
-            st.plotly_chart(fig_dd, use_container_width=True)
 
 # ============================================
 # TAB 2: SERIE STORICA
@@ -290,4 +275,5 @@ st.markdown("""
     Analisi Volatilità (Metodologia su Quote Lorde) - Dashboard Portfolio Etica SGR
 </div>
 """, unsafe_allow_html=True)
+
 
