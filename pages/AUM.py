@@ -116,63 +116,6 @@ if vista == "Confronto fondi":
         )
         st.plotly_chart(fig_trend, use_container_width=True)
 
-        # --- STATISTICHE RIASSUNTIVE ---
-        st.subheader("📊 Statistiche Riassuntive")
-        
-        if not df_agg_history.empty and len(df_agg_history) > 1:
-            aum_iniziale = df_agg_history.iloc[0]["AUM_Clean"]
-            aum_finale = df_agg_history.iloc[-1]["AUM_Clean"]
-            aum_max = df_agg_history["AUM_Clean"].max()
-            aum_min = df_agg_history["AUM_Clean"].min()
-            
-            # Calcolo variazioni
-            variazione_assoluta = aum_finale - aum_iniziale
-            variazione_percentuale = ((aum_finale - aum_iniziale) / aum_iniziale * 100) if aum_iniziale != 0 else 0
-            
-            # Volatilità (deviazione standard delle variazioni percentuali giornaliere)
-            df_agg_history_sorted = df_agg_history.sort_values("Data").copy()
-            df_agg_history_sorted["Var_pct"] = df_agg_history_sorted["AUM_Clean"].pct_change() * 100
-            volatilita = df_agg_history_sorted["Var_pct"].std()
-            
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric(
-                    label="Variazione Assoluta",
-                    value=f"€ {variazione_assoluta:,.2f}",
-                    delta=f"{variazione_percentuale:.2f}%"
-                )
-            
-            with col2:
-                st.metric(
-                    label="AUM Massimo",
-                    value=f"€ {aum_max:,.2f}"
-                )
-            
-            with col3:
-                st.metric(
-                    label="AUM Minimo",
-                    value=f"€ {aum_min:,.2f}"
-                )
-            
-            with col4:
-                st.metric(
-                    label="Volatilità (%)",
-                    value=f"{volatilita:.2f}%" if not pd.isna(volatilita) else "N/A"
-                )
-        
-        # --- TABELLA ANDAMENTO STORICO ---
-        st.subheader("📅 Andamento Storico AUM Totale")
-        
-        # Prepariamo la tabella per la visualizzazione
-        df_table = df_agg_history.copy()
-        df_table["Data"] = df_table["Data"].dt.strftime("%d/%m/%Y")
-        df_table = df_table.rename(columns={"AUM_Clean": "AUM Totale (€)"})
-        df_table["AUM Totale (€)"] = df_table["AUM Totale (€)"].apply(lambda x: f"€ {x:,.2f}")
-        
-        # Mostra la tabella in ordine decrescente (più recenti in alto)
-        st.dataframe(df_table.iloc[::-1], use_container_width=True, height=400)
-
         st.markdown("---")
 
         # --- GRAFICO 2: DETTAGLIO BAR CHART (ULTIMA DATA) ---
