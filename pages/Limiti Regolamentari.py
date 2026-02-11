@@ -89,7 +89,7 @@ def get_compliance_rules():
             {"name": "Limite depositi", "type": "max", "limit": 40, "calc_func": lambda d: calc_deposits_limit(d)},
             {"name": "Duration", "type": "range", "min_limit": 3, "max_limit": 9, "calc_func": lambda d, date: get_duration_value(d, date, "Etica Bilanciato")},
             {"name": "Geografia azioni", "type": "min", "limit": 50, "calc_func": lambda d: calc_equity_geography_developed(d, paesi_sviluppati)},
-            {"name": "Geografia obbligazioni", "type": "range", "min_limit": 50, "max_limit": 70, "calc_func": lambda d: calc_bonds_geography_ume(d, paesi_ume)},
+            {"name": "Geografia obbligazioni", "type": "min", "limit": 50, "calc_func": lambda d: calc_bonds_geography_ume(d, paesi_ume)},
             {"name": "Quota azionaria", "type": "max", "limit": 70, "calc_func": lambda d: calc_equity_quota(d)},
             {"name": "Esposizione Valutaria Lorda", "type": "max", "limit": 100, "calc_func": lambda d: calc_gross_currency_exposure(d)},
             {"name": "Esposizione Valutaria Netta", "type": "max", "limit": 100, "calc_func": lambda d: calc_net_currency_exposure(d)},
