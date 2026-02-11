@@ -19,7 +19,7 @@ check_page_access_auth0("AUM")
 
 # === Logica della pagina AUM ===
 st.set_page_config(layout="wide")
-st.title("💰 Analisi AUM (Asset Under Management)")
+st.title("💰 Analisi AUM ")
 
 df_tot_original = st.session_state.get("aum_data", pd.DataFrame())
 dfs_fondi_original = st.session_state.get("aum_fondi", {})
@@ -88,14 +88,11 @@ if vista == "Confronto fondi":
         ultima_data_generale = df_tot_original["Data"].max()
         
         # Visualizzazione KPI in alto
-        st.subheader("Riepilogo AUM")
-        col_kpi, _ = st.columns([1, 3])
-        with col_kpi:
-            st.metric(
-                label=f"AUM Totale (al {format_date(ultima_data_generale.date())})",
-                value=f"€ {aum_totale:,.2f}"
-            )
-        
+       
+        st.metric(
+            label=f"AUM Totale (al {format_date(ultima_data_generale.date())})",
+            value=f"€ {aum_totale:,.2f}"
+        )
         st.markdown("---")
 
         # --- GRAFICO 1: ANDAMENTO STORICO AGGREGATO (NO NEGATIVI) ---
