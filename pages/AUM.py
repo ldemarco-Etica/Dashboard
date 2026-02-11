@@ -76,25 +76,69 @@ if vista == "Confronto fondi":
     if df_tot_original.empty:
         st.error("Foglio totale AUM non disponibile.")
     else:
+        # ---------------------------------------------------------
+        # 1. NUOVO GRAFICO: ANDAMENTO SOMMA AUM (NO NEGATIVI)
+        # ---------------------------------------------------------
+        
+        # Usiamo df_tot (che rispetta i filtri data della sidebar) se disponibile,
+        # altrimenti usiamo l'originale
+        df_source = df_tot if 'df_tot' in locals() else df_tot_original
+
+        # Trasformiamo in formato lungo
+        df_long = df_source.melt(id_vars='Data', var_name='Fondo', value_name='AUM').dropna(subset=['AUM'])
+        
+        # LOGICA GESTIONE NEGATIVI: 
+        # Creiamo una colonna temporanea dove i valori < 0 diventano 0
+        df_long['AUM_Positivo'] = df_long['AUM'].clip(lower=0)
+        
+        # Raggruppiamo per data sommando solo i valori positivi
+        df_agg_total = df_long.groupby("Data")["AUM_Positivo"].sum().reset_index()
+        
+        st.subheader("Andamento AUM Totale (Aggregato)")
+        st.info("Nota: I valori negativi dei singoli fondi sono considerati come 0 nel calcolo del totale giornaliero.")
+
+        fig_trend = px.area(
+            df_agg_total, 
+            x="Data", 
+            y="AUM_Positivo", 
+            title="Evoluzione AUM Complessivo (Esclusi fondi negativi)",
+            labels={"AUM_Positivo": "AUM Totale (€)", "Data": "Data"}
+        )
+        st.plotly_chart(fig_trend, use_container_width=True)
+
+        st.markdown("---") # Separatore visivo
+
+        # ---------------------------------------------------------
+        # 2. GRAFICO ESISTENTE: BAR CHART (SNAPSHOT ULTIMA DATA)
+        # ---------------------------------------------------------
+        
+        # Qui usiamo df_tot_original perché vogliamo l'ultima data disponibile in assoluto,
+        # indipendentemente dal filtro temporale applicato sopra (o puoi usare df_tot se preferisci)
         df_melted = df_tot_original.melt(id_vars='Data', var_name='Fondo', value_name='AUM').dropna(subset=['AUM'])
-        df_last_valid = df_melted.loc[df_melted.groupby('Fondo')['Data'].idxmax()]
         
+        # Troviamo l'ultima data valida per ogni fondo
+        df_last_valid = df_melted.loc[df_melted.groupby('Fondo')['Data'].idxmax()].copy()
+        
+        # Anche qui, per coerenza, se vuoi mostrare il totale "sanitizzato" nel titolo:
+        aum_totale = df_last_valid["AUM"].clip(lower=0).sum()
         ultima_data_generale = df_tot_original["Data"].max()
-        aum_totale = df_last_valid["AUM"].sum()
         
-        st.subheader(f"Confronto AUM fondi (AUM Totale al {format_date(ultima_data_generale.date())}: €{aum_totale:,.2f})")
+        st.subheader(f"Dettaglio per Fondo (AUM Totale al {format_date(ultima_data_generale.date())}: €{aum_totale:,.2f})")
         
-        fig = px.bar(
+        fig_bar = px.bar(
             df_last_valid.sort_values("AUM", ascending=False),
             x="Fondo",
             y="AUM",
-            title="AUM per ciascun fondo",
+            title="AUM attuale per ciascun fondo",
             labels={"AUM": "AUM", "Fondo": "Fondo"},
             hover_data=['Data']
         )
-        fig.update_layout(xaxis_tickangle=-45)
-        st.plotly_chart(fig, use_container_width=True)
+        fig_bar.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig_bar, use_container_width=True)
+        
+        # Tabella di riepilogo
         st.dataframe(df_last_valid.sort_values("AUM", ascending=False))
+
 
 elif vista == "Serie storica AUM":
     mode = st.sidebar.radio("Tipo di confronto", ["Singolo fondo", "Tutti i fondi"])
