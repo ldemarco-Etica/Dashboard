@@ -99,7 +99,7 @@ def get_compliance_rules():
         "Etica Rendita Bilanciata": [
             {"name": "Ammissibilità derivati", "type": "qualitative", "calc_func": lambda d: check_derivatives_admissibility(d)},
             {"name": "Geografia azioni", "type": "min", "limit": 50, "calc_func": lambda d: calc_equity_geography_developed(d, paesi_sviluppati)},
-            {"name": "Geografia obbligazioni", "type": "range", "min_limit": 50, "max_limit": 70, "calc_func": lambda d: calc_bonds_geography_ume(d, paesi_ume)},
+            {"name": "Geografia obbligazioni", "type": "min", "limit": 50, "calc_func": lambda d: calc_bonds_geography_ume(d, paesi_ume)},
             {"name": "Concentrazione corporate", "type": "max", "limit": 10, "calc_func": lambda d: calc_corporate_concentration(d)},
             {"name": "Limite depositi", "type": "max", "limit": 40, "calc_func": lambda d: calc_deposits_limit(d)},
             {"name": "Duration", "type": "range", "min_limit": 2, "max_limit": 9, "calc_func": lambda d, date: get_duration_value(d, date, "Etica Rendita Bilanciata")},
@@ -116,7 +116,7 @@ def get_compliance_rules():
             {"name": "Duration", "type": "range", "min_limit": 2, "max_limit": 8, "calc_func": lambda d, date: get_duration_value(d, date, "Etica Obbligazionario Misto")},
             {"name": "Quota azionaria", "type": "max", "limit": 20, "calc_func": lambda d: calc_equity_quota(d)},
             {"name": "Geografia azioni", "type": "min", "limit": 50, "calc_func": lambda d: calc_equity_geography_developed(d, paesi_sviluppati)},
-            {"name": "Geografia obbligazioni", "type": "range", "min_limit": 50, "max_limit": 70, "calc_func": lambda d: calc_bonds_geography_ume(d, paesi_ume)},
+            {"name": "Geografia obbligazioni", "type": "min", "limit": 50, "calc_func": lambda d: calc_bonds_geography_ume(d, paesi_ume)},
             {"name": "Esposizione Valutaria Lorda", "type": "max", "limit": 50, "calc_func": lambda d: calc_gross_currency_exposure(d)},
             {"name": "Esposizione Valutaria Netta", "type": "max", "limit": 25, "calc_func": lambda d: calc_net_currency_exposure(d)},
             {"name": "Quota OICR", "type": "max", "limit": 10, "calc_func": lambda d: calc_oicr_quota(d)},
