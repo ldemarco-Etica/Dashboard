@@ -22,7 +22,7 @@ class DataPaths:
     portfolios_depositaria: Path = base_dir / 'portfolios_depositaria'  # Non più usato
     
     # ✅ INVARIATI: File Excel rimangono come sono
-    aum: Path = base_dir / 'AUM' / 'storico_aum.xlsx'
+    aum: Path = base_dir / 'AUM' / 'storico_aum.xlsm'
     tev: Path = base_dir / 'TEV' / 'Grafici TEV.xlsm'
     duration: Path = base_dir / 'duration' / 'storico_duration_fondi.xlsx'
     limiti_cda: Path = base_dir / 'limiti' / 'Limiti_CDA.xlsx'
