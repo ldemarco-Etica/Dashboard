@@ -25,7 +25,7 @@ ROLLING_WINDOW = 260  # giorni lavorativi in un anno
 ANNUALIZATION_FACTOR = np.sqrt(260)
 
 # Percorso file
-QUOTE_FILE = Path("data") / "quote lorde.xlsx"
+QUOTE_FILE = Path("data") / "quote lorde.xlsm"
 
 # ============================================
 # CARICAMENTO DATI
@@ -275,5 +275,6 @@ st.markdown("""
     Analisi Volatilità (Metodologia su Quote Lorde) - Dashboard Portfolio Etica SGR
 </div>
 """, unsafe_allow_html=True)
+
 
 
