@@ -4,7 +4,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime, timedelta
-from typing import List
 import logging
 
 # Import improved modules
@@ -85,9 +84,6 @@ def create_allocation_charts(analyzer: PortfolioAnalyzer, fund_name: str, date: 
                         color_sequence=px.colors.qualitative.Set3,
                         custom_hover_col=custom_hover_col
                     )
-                    
-                    # ✨ MODIFICA: Nascondi la legenda per evitare sovrapposizioni
-                    charts['sector'].update_layout(showlegend=False)
                 # ===================== FINE NUOVA LOGICA =====================
             
             # Geographic allocation
@@ -117,9 +113,6 @@ def create_allocation_charts(analyzer: PortfolioAnalyzer, fund_name: str, date: 
                     title="Esposizione Valutaria",
                     color_sequence=px.colors.qualitative.Pastel
                 )
-                
-                # ✨ MODIFICA: Nascondi la legenda per evitare sovrapposizioni
-                charts['currency'].update_layout(showlegend=False)
         
         return charts
         
@@ -129,7 +122,7 @@ def create_allocation_charts(analyzer: PortfolioAnalyzer, fund_name: str, date: 
         return {}
 
 def create_evolution_charts(performance_analyzer: PerformanceAnalyzer, 
-                          fund_name: str, start_date: datetime, end_date: datetime):
+                           fund_name: str, start_date: datetime, end_date: datetime):
     """Create evolution charts over time"""
     try:
         evolution_charts = {}
@@ -173,11 +166,12 @@ def create_evolution_charts(performance_analyzer: PerformanceAnalyzer,
             )
             
             if not asset_evolution.empty:
-                evolution_charts['asset_class'] = chart_factory.create_line_chart(
-                    asset_evolution, 'DataRiferimento', 'PesoPort',
-                    color='Description',
-                    title="Evoluzione Asset Class nel Tempo"
+                evolution_charts['asset_class'] = px.area(
+                    asset_evolution, x='DataRiferimento', y='PesoPort', 
+                    color='CodiceTipo', title='Evoluzione Asset Class nel Tempo',
+                    labels={'PesoPort': 'Peso (%)', 'DataRiferimento': 'Data'}
                 )
+                evolution_charts['asset_class'].update_layout(hovermode='x unified')
         
         return evolution_charts
         
@@ -186,40 +180,36 @@ def create_evolution_charts(performance_analyzer: PerformanceAnalyzer,
         ErrorHandler.handle_calculation_error(e, "evolution charts")
         return {}
 
-def get_available_sectors(fund_name: str) -> List[str]:
-    """Get list of available sectors for a fund"""
+def get_available_sectors(fund_name: str) -> list:
+    """Get available sectors for the fund"""
     try:
         portfolio_data = st.session_state['portfolio_data']
-        fund_data = portfolio_data[portfolio_data['DesFondo'] == fund_name]
+        fund_data = portfolio_data[portfolio_data['Descrizione'] == fund_name]
         
         if fund_data.empty:
             return []
         
-        sectors = fund_data['DescrizioneSector'].dropna().unique().tolist()
+        sectors = fund_data['DescrizioneSector'].dropna().unique()
         return sorted(sectors)
         
     except Exception as e:
         logger.error(f"Error getting available sectors: {e}")
         return []
 
-def get_top_sectors(fund_name: str, n: int = 5) -> List[str]:
-    """Get top N sectors by weight for a fund"""
+def get_top_sectors(fund_name: str, n: int = 5) -> list:
+    """Get top N sectors by weight"""
     try:
         portfolio_data = st.session_state['portfolio_data']
-        
-        # Get most recent date
-        latest_date = portfolio_data['DataRiferimento'].max()
-        
-        fund_data = portfolio_data[
-            (portfolio_data['DesFondo'] == fund_name) & 
-            (portfolio_data['DataRiferimento'] == latest_date)
-        ]
+        fund_data = portfolio_data[portfolio_data['Descrizione'] == fund_name]
         
         if fund_data.empty:
             return []
         
-        # Aggregate by sector
-        sector_weights = fund_data.groupby('DescrizioneSector')['PesoPort'].sum()
+        # Get latest data
+        latest_date = fund_data['DataRiferimento'].max()
+        latest_data = fund_data[fund_data['DataRiferimento'] == latest_date]
+        
+        sector_weights = latest_data.groupby('DescrizioneSector', observed=True)['PesoPort'].sum()
         top_sectors = sector_weights.nlargest(n).index.tolist()
         
         return top_sectors
@@ -231,42 +221,57 @@ def get_top_sectors(fund_name: str, n: int = 5) -> List[str]:
 def display_allocation_metrics(analyzer: PortfolioAnalyzer, fund_name: str, date: datetime):
     """Display key allocation metrics"""
     try:
-        st.subheader("📊 Metriche di Allocazione")
-        
-        # Get allocation data
-        sector_data = analyzer.calculate_sector_allocation(fund_name, date)
-        geo_data = analyzer.calculate_geographic_allocation(fund_name, date)
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            num_sectors = len(sector_data) if not sector_data.empty else 0
-            st.metric("Settori", num_sectors)
-        
-        with col2:
-            num_countries = len(geo_data) if not geo_data.empty else 0
-            st.metric("Paesi", num_countries)
-        
-        with col3:
-            if not sector_data.empty:
-                top_sector_weight = sector_data['PesoPort'].max()
-                st.metric("Top Settore", f"{top_sector_weight:.1f}%")
-            else:
-                st.metric("Top Settore", "N/A")
-        
-        with col4:
-            if not geo_data.empty:
-                top_country_weight = geo_data['PesoPort'].max()
-                st.metric("Top Paese", f"{top_country_weight:.1f}%")
-            else:
-                st.metric("Top Paese", "N/A")
+        with st.container():
+            st.subheader("📊 Metriche di Allocazione")
+            
+            # Calculate key metrics
+            equity_weight = analyzer.calculator.calculate_equity_weight(
+                analyzer._get_fund_data_for_date(fund_name, date)
+            )
+            bond_weight = analyzer.calculator.calculate_bond_weight(
+                analyzer._get_fund_data_for_date(fund_name, date)
+            )
+            oicr_weight = analyzer.calculator.calculate_oicr_weight(
+                analyzer._get_fund_data_for_date(fund_name, date)
+            )
+            liquidity_weight = analyzer.calculator.calculate_liquidity_weight(
+                analyzer._get_fund_data_for_date(fund_name, date)
+            )
+            
+            # Display metrics
+            metrics = {
+                "Quota Azionaria": equity_weight,
+                "Quota Obbligazionaria": bond_weight,
+                "Quota OICR": oicr_weight,
+                "Liquidità": liquidity_weight
+            }
+            
+            ui_components.display_metrics_grid(
+                {k: f"{v:.2f}%" for k, v in metrics.items()}
+            )
+            
+            # Calculate and display concentration metrics
+            performance_analyzer = PerformanceAnalyzer(st.session_state['portfolio_data'])
+            concentration_metrics = performance_analyzer.calculate_concentration_metrics(fund_name, date)
+            
+            if concentration_metrics:
+                st.subheader("📈 Metriche di Concentrazione")
+                
+                conc_metrics = {
+                    "Posizioni Effettive": concentration_metrics.get('effective_positions', 0),
+                    "Posizioni Totali": concentration_metrics.get('total_positions', 0),
+                    "Top 5 Concentrazione": f"{concentration_metrics.get('top_5_concentration', 0):.1f}%",
+                    "Posizione Maggiore": f"{concentration_metrics.get('largest_position', 0):.2f}%"
+                }
+                
+                ui_components.display_metrics_grid(conc_metrics)
         
     except Exception as e:
         logger.error(f"Error displaying allocation metrics: {e}")
-        st.warning("⚠️ Could not display allocation metrics")
+        ErrorHandler.handle_calculation_error(e, "allocation metrics")
 
 def main():
-    """Main function for Allocazioni page"""
+    """Main function for the allocations page"""
     try:
         # Validate data availability
         portfolio_data = validate_data_availability()
@@ -275,58 +280,66 @@ def main():
         analyzer = PortfolioAnalyzer(portfolio_data)
         performance_analyzer = PerformanceAnalyzer(portfolio_data)
         
-        # Sidebar filters
-        st.sidebar.header("🎛️ Filtri")
+        # Sidebar controls
+        st.sidebar.header("🔧 Filtri Allocazioni")
         
         # Fund selection
         selected_fund = ui_components.create_fund_selector(
-            portfolio_data, 
-            label="📈 Seleziona Fondo:",
-            key="allocations_fund"
+            portfolio_data, key="allocations_fund_selector"
         )
         
         if not selected_fund:
             st.warning("⚠️ Please select a fund to continue")
             return
         
-        # Date range selection
-        start_date, end_date = ui_components.create_date_filter_sidebar(
-            portfolio_data,
-            fund_name=selected_fund,
-            key_prefix="allocations"
-        )
+        # Get fund data for date range
+        fund_data = data_repository.get_fund_data(portfolio_data, selected_fund)
         
-        # Snapshot date selection
-        st.sidebar.subheader("📸 Snapshot Date")
-        
-        available_dates = data_repository.get_available_dates(portfolio_data, selected_fund)
-        
-        if not available_dates:
-            st.error("❌ No data available for the selected fund")
+        if fund_data.empty:
+            st.error(f"❌ No data found for fund: {selected_fund}")
             return
         
-        snapshot_date = st.sidebar.selectbox(
+        min_date_fund = fund_data['DataRiferimento'].min()
+        max_date_fund = fund_data['DataRiferimento'].max()
+        
+        # Display fund info
+        st.header(f"📈 Analisi Allocazioni: {selected_fund}")
+        
+        create_info_box(
+            "📅 Periodo Dati Disponibili",
+            f"Dal **{format_date(min_date_fund)}** al **{format_date(max_date_fund)}**",
+            "info"
+        )
+        
+        # Date filters for evolution analysis
+        start_date, end_date = ui_components.create_date_filter_sidebar(
+            portfolio_data, selected_fund, key_prefix="allocations"
+        )
+        
+        # Snapshot section
+        st.subheader("📸 Snapshot Allocazioni")
+        
+        # Date selection for snapshot
+        snapshot_date = st.date_input(
             "Seleziona data per lo snapshot:",
-            options=available_dates,
-            index=len(available_dates) - 1,  # Default to most recent
-            format_func=lambda x: format_date(x),
-            key="snapshot_date"
+            value=max_date_fund.date(),
+            min_value=min_date_fund.date(),
+            max_value=max_date_fund.date(),
+            help="Scegli una data specifica per vedere la composizione del portafoglio"
         )
         
         snapshot_datetime = datetime.combine(snapshot_date, datetime.min.time())
         
-        # Main content
-        st.subheader(f"📸 Snapshot Allocazioni - {format_date(snapshot_datetime)}")
-        
         # Get snapshot data
-        snapshot_data = data_repository.get_fund_data(
-            portfolio_data, selected_fund, snapshot_datetime, snapshot_datetime
+        snapshot_data = data_repository.get_fund_data_for_date(
+            portfolio_data, selected_fund, snapshot_datetime
         )
         
         if snapshot_data.empty:
-            st.warning(f"⚠️ No data available for {selected_fund} on {format_date(snapshot_datetime)}")
+            st.warning(f"⚠️ Nessun dato disponibile per il {format_date(snapshot_datetime)}. "
+                      "Prova con un'altra data.")
         else:
-            # Create allocation charts
+            # Create and display allocation charts
             charts = create_allocation_charts(analyzer, selected_fund, snapshot_datetime)
             
             if charts:
