@@ -111,7 +111,7 @@ if vista == "Confronto fondi":
             df_agg_history,
             x="Data",
             y="AUM_Clean",
-            title="Evoluzione AUM Totale (Esclusi fondi negativi)",
+            title="Evoluzione AUM Totale",
             labels={"AUM_Clean": "AUM Totale (€)", "Data": "Data"}
         )
         st.plotly_chart(fig_trend, use_container_width=True)
