@@ -105,16 +105,20 @@ def create_allocation_charts(analyzer: PortfolioAnalyzer, fund_name: str, date: 
                     asset_data, 'Description', 'PesoPort',
                     title="Allocazione per Asset Class"
                 )
-            
-            # Currency exposure
+
+            #Currency exposure
             currency_data = analyzer.calculate_currency_exposure(fund_name, date)
             if not currency_data.empty:
-                charts['currency'] = chart_factory.create_pie_chart(
-                    currency_data, 'PesoPort', 'CodiceDivisaEsposizione',
+                fig = chart_factory.create_pie_chart(
+                    currency_data,
+                    'PesoPort',
+                    'CodiceDivisaEsposizione',
                     title="Esposizione Valutaria",
                     color_sequence=px.colors.qualitative.Pastel
                 )
-        
+                fig.update_layout(showlegend=False)
+                charts['currency'] = fig
+
         return charts
         
     except Exception as e:
