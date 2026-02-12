@@ -61,6 +61,7 @@ def create_allocation_charts(analyzer: PortfolioAnalyzer, fund_name: str, date: 
                         y_col='PesoPort',
                         title="Allocazione Settoriale"
                     )
+                    charts['sector'].update_layout(showlegend=False)
                 else:
                     # CASO 2: NON CI SONO VALORI NEGATIVI -> Procedi con il grafico a torta
                     total_weight = sector_data['PesoPort'].sum()
@@ -113,6 +114,7 @@ def create_allocation_charts(analyzer: PortfolioAnalyzer, fund_name: str, date: 
                     title="Esposizione Valutaria",
                     color_sequence=px.colors.qualitative.Pastel
                 )
+                charts['currency'].update_layout(showlegend=False)
         
         return charts
         
