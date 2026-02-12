@@ -45,42 +45,43 @@ def create_allocation_charts(analyzer: PortfolioAnalyzer, fund_name: str, date: 
             sector_data = analyzer.calculate_sector_allocation(fund_name, date)
             if not sector_data.empty:
 
-                # ==================== INIZIO NUOVA LOGICA CONDIZIONALE ====================
-                # Controlla la presenza di valori negativi, che non sono compatibili con i grafici a torta
                 has_negative_values = (sector_data['PesoPort'] < 0).any()
 
                 if has_negative_values:
-                    # CASO 1: CI SONO VALORI NEGATIVI -> Usa un grafico a barre
                     st.warning(
-                        f"⚠️ **Attenzione:** L'allocazione settoriale per il fondo **{fund_name}** contiene valori negativi. "
-                        "Un grafico a torta non può rappresentare questi dati, perciò viene mostrato un grafico a barre per una visualizzazione corretta."
+                        f"⚠️ Allocazione settoriale con valori negativi per **{fund_name}** → grafico a barre."
                     )
-                    charts['sector'] = chart_factory.create_bar_chart(
+                    fig = chart_factory.create_bar_chart(
                         sector_data.sort_values('PesoPort', ascending=False),
                         x_col='DescrizioneSector',
                         y_col='PesoPort',
                         title="Allocazione Settoriale"
                     )
+                    fig.update_layout(showlegend=False)
+                    charts['sector'] = fig
+
                 else:
-                    # CASO 2: NON CI SONO VALORI NEGATIVI -> Procedi con il grafico a torta
                     total_weight = sector_data['PesoPort'].sum()
                     values_col = 'PesoPort'
                     custom_hover_col = None
 
                     if total_weight > 100.1:
                         st.info(
-                            f"ℹ️ Il fondo **{fund_name}** ha un'esposizione settoriale totale del **{total_weight:.1f}%**. "
-                            "Il grafico a torta è stato normalizzato al 100% per la visualizzazione."
+                            f"ℹ️ Totale settori = **{total_weight:.1f}%** → normalizzazione."
                         )
-                        sector_data['PesoPort_Normalized'] = (sector_data['PesoPort'] / total_weight) * 100
+                        sector_data['PesoPort_Normalized'] = (
+                            sector_data['PesoPort'] / total_weight * 100
+                        )
                         values_col = 'PesoPort_Normalized'
                         custom_hover_col = 'PesoPort'
 
                     fig = chart_factory.create_pie_chart(
-                        sector_data.sort_values('PesoPort', ascending=False),
-                        x_col='DescrizioneSector',
-                        y_col='PesoPort',
-                        title="Allocazione Settoriale"
+                        sector_data,
+                        values_col=values_col,
+                        names_col='DescrizioneSector',
+                        title="Allocazione Settoriale",
+                        color_sequence=px.colors.qualitative.Set3,
+                        custom_hover_col=custom_hover_col
                     )
                     fig.update_layout(showlegend=False)
                     charts['sector'] = fig
