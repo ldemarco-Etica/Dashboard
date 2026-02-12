@@ -76,14 +76,14 @@ def create_allocation_charts(analyzer: PortfolioAnalyzer, fund_name: str, date: 
                         values_col = 'PesoPort_Normalized'
                         custom_hover_col = 'PesoPort'
 
-                    charts['sector'] = chart_factory.create_pie_chart(
-                        sector_data,
-                        values_col=values_col,
-                        names_col='DescrizioneSector',
-                        title="Allocazione Settoriale",
-                        color_sequence=px.colors.qualitative.Set3,
-                        custom_hover_col=custom_hover_col
+                    fig = chart_factory.create_bar_chart(
+                        sector_data.sort_values('PesoPort', ascending=False),
+                        x_col='DescrizioneSector',
+                        y_col='PesoPort',
+                        title="Allocazione Settoriale"
                     )
+                    fig.update_layout(showlegend=False)
+                    charts['sector'] = fig
                 # ===================== FINE NUOVA LOGICA =====================
             
             # Geographic allocation
