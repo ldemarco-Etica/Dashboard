@@ -163,10 +163,6 @@ def calculate_summary_stats(df_metrics: pd.DataFrame) -> dict:
         'dd_max': dd_data.min()
     }
 
-# ============================================
-# SIDEBAR - FILTRI
-# ============================================
-st.sidebar.header("🔧 Filtri Analisi")
 
 # ============================================
 # TAB SYSTEM
@@ -224,17 +220,27 @@ with tab1:
         
 
 # ============================================
-# TAB 2: SERIE STORICA (CORRETTO)
+# TAB 2: SERIE STORICA (CORRETTO & SPOSTATO)
 # ============================================
 with tab2:
-    # Selettore Fondo (nella Sidebar, specifico per questo Tab)
-    selected_fund = st.sidebar.selectbox(
-        "Seleziona il fondo per l'analisi storica", 
-        available_funds, 
-        key="fund_selector_tab2"
-    )
+    # ---------------------------------------------------------
+    # 1. SELETTORE FONDO (Spostato qui dalla Sidebar)
+    # ---------------------------------------------------------
+    # Usiamo colonne per non far prendere tutta la larghezza al menu a tendina
+    col_sel_fund, _ = st.columns([1, 2]) 
     
-    # Calcolo metriche iniziali (su tutto il periodo disponibile)
+    with col_sel_fund:
+        selected_fund = st.selectbox(
+            "🔍 Seleziona il fondo da analizzare", 
+            available_funds, 
+            key="fund_selector_tab2"
+        )
+    
+    st.markdown("---") # Separatore visivo
+
+    # ---------------------------------------------------------
+    # 2. CALCOLO METRICHE & LOGICA DATE
+    # ---------------------------------------------------------
     df_metrics = calculate_volatility_metrics(df_quote, selected_fund)
     
     if not df_metrics.empty:
@@ -242,15 +248,12 @@ with tab2:
         min_date_avail = df_metrics['Date'].min()
         max_date_avail = df_metrics['Date'].max()
         
-        # ---------------------------------------------------------
-        # 📅 SELETTORE PERIODO
-        # ---------------------------------------------------------
-        # Usiamo colonne per allineare il selettore e renderlo ordinato
+        # Layout controlli temporali
         col_ctrl1, col_ctrl2 = st.columns([1, 3])
         
         with col_ctrl1:
             preset = st.selectbox(
-                "Periodo temporale",
+                "📅 Periodo temporale",
                 ["Tutto", "Ultimi 3 mesi", "Ultimi 6 mesi", "Ultimo anno", "YTD", "Personalizzato"],
                 index=3 # Default su Ultimo anno
             )
@@ -272,16 +275,15 @@ with tab2:
                 c1, c2 = st.columns(2)
                 d1 = c1.date_input("Dal", value=min_date_avail, min_value=min_date_avail, max_value=max_date_avail)
                 d2 = c2.date_input("Al", value=max_date_avail, min_value=min_date_avail, max_value=max_date_avail)
-                # Convertiamo in Timestamp per compatibilità col DataFrame
                 start_date = pd.to_datetime(d1)
                 end_date = pd.to_datetime(d2)
 
-        # Controllo limiti (se il calcolo va prima della data di disponibilità dati)
+        # Controllo limiti
         if start_date < min_date_avail:
             start_date = min_date_avail
         
         # ---------------------------------------------------------
-        # FILTRO DATI
+        # 3. FILTRO DATI & VISUALIZZAZIONE
         # ---------------------------------------------------------
         mask = (df_metrics['Date'] >= start_date) & (df_metrics['Date'] <= end_date)
         df_filtered = df_metrics.loc[mask].copy()
@@ -301,8 +303,8 @@ with tab2:
                 ("Vol. 1Y Attuale", stats['vol_current']),
                 ("Vol. 3Y", stats['vol_3y']),
                 ("Vol. 5Y", stats['vol_5y']),
-                ("Vol. Max (periodo)", stats['vol_max']), # Aggiornato label per chiarezza
-                ("Max Drawdown (periodo)", stats['dd_max'])
+                ("Vol. Max (periodo)", stats['vol_max']),
+                ("Max Drawdown", stats['dd_max'])
             ]
             
             for i, (label, val) in enumerate(metrics_list):
@@ -355,6 +357,7 @@ st.markdown("""
     Analisi Volatilità (Metodologia su Quote Lorde) - Dashboard Portfolio Etica SGR
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
