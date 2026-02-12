@@ -224,47 +224,127 @@ with tab1:
         
 
 # ============================================
-# TAB 2: SERIE STORICA
+# TAB 2: SERIE STORICA (CORRETTO)
 # ============================================
 with tab2:
-    selected_fund = st.sidebar.selectbox("Seleziona il fondo", available_funds, key="fund_selector_tab2")
+    # Selettore Fondo (nella Sidebar, specifico per questo Tab)
+    selected_fund = st.sidebar.selectbox(
+        "Seleziona il fondo per l'analisi storica", 
+        available_funds, 
+        key="fund_selector_tab2"
+    )
+    
+    # Calcolo metriche iniziali (su tutto il periodo disponibile)
     df_metrics = calculate_volatility_metrics(df_quote, selected_fund)
     
     if not df_metrics.empty:
-        # Filtro Periodo (Logica esistente...)
-        min_date, max_date = df_metrics['Date'].min().to_pydatetime(), df_metrics['Date'].max().to_pydatetime()
-        # ... [Logica preset periodi omessa per brevità ma mantenuta uguale] ...
-        # (Assumiamo start_date e end_date calcolati come nel tuo originale)
+        # Recupera date min/max disponibili
+        min_date_avail = df_metrics['Date'].min()
+        max_date_avail = df_metrics['Date'].max()
         
-        # Per brevità riprendo dal punto dei filtri applicati:
-        preset = st.sidebar.selectbox("Periodo predefinito", ["Tutto", "Ultimi 3 mesi", "Ultimi 6 mesi", "Ultimo anno", "YTD", "Personalizzato"])
-        # ... [Logica date come nel tuo codice] ...
-        start_date, end_date = min_date, max_date # Default per l'esempio
+        # ---------------------------------------------------------
+        # 📅 SELETTORE PERIODO
+        # ---------------------------------------------------------
+        # Usiamo colonne per allineare il selettore e renderlo ordinato
+        col_ctrl1, col_ctrl2 = st.columns([1, 3])
         
-        df_filtered = df_metrics[(df_metrics['Date'] >= start_date) & (df_metrics['Date'] <= end_date)].copy()
-        stats = calculate_summary_stats(df_filtered)
-        
-        st.markdown(f"### Analisi di Rischio: {selected_fund}")
-        st.caption(f"Dati basati su **Quote Lorde** | Periodo: {format_date(start_date)} - {format_date(end_date)}")
-        
-        # Metric Cards
-        cols = st.columns(5)
-        metrics_list = [
-            ("Vol. 1Y Attuale", stats['vol_current']),
-            ("Vol. 3Y", stats['vol_3y']),
-            ("Vol. 5Y", stats['vol_5y']),
-            ("Vol. Max Storica", stats['vol_max']),
-            ("Max Drawdown", stats['dd_max'])
-        ]
-        for i, (label, val) in enumerate(metrics_list):
-            cols[i].metric(label, f"{val:.2f}%" if pd.notna(val) else "N/A")
+        with col_ctrl1:
+            preset = st.selectbox(
+                "Periodo temporale",
+                ["Tutto", "Ultimi 3 mesi", "Ultimi 6 mesi", "Ultimo anno", "YTD", "Personalizzato"],
+                index=3 # Default su Ultimo anno
+            )
 
-        # Grafico Combinato
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
-        fig.add_trace(go.Scatter(x=df_filtered['Date'], y=df_filtered['Quota'], name="Quota Lorda", line=dict(color='steelblue')), secondary_y=False)
-        fig.add_trace(go.Scatter(x=df_filtered['Date'], y=df_filtered['Volatilità_1Y'], name="Volatilità 1Y", line=dict(color='orange', dash='dash')), secondary_y=True)
-        fig.update_layout(title=f"{selected_fund} — Quota Lorda e Volatilità", height=600, hovermode='x unified')
-        st.plotly_chart(fig, use_container_width=True)
+        # Logica di calcolo Date
+        start_date = min_date_avail
+        end_date = max_date_avail
+
+        if preset == "Ultimi 3 mesi":
+            start_date = max_date_avail - timedelta(days=90)
+        elif preset == "Ultimi 6 mesi":
+            start_date = max_date_avail - timedelta(days=180)
+        elif preset == "Ultimo anno":
+            start_date = max_date_avail - timedelta(days=365)
+        elif preset == "YTD":
+            start_date = pd.Timestamp(year=max_date_avail.year, month=1, day=1)
+        elif preset == "Personalizzato":
+            with col_ctrl2:
+                c1, c2 = st.columns(2)
+                d1 = c1.date_input("Dal", value=min_date_avail, min_value=min_date_avail, max_value=max_date_avail)
+                d2 = c2.date_input("Al", value=max_date_avail, min_value=min_date_avail, max_value=max_date_avail)
+                # Convertiamo in Timestamp per compatibilità col DataFrame
+                start_date = pd.to_datetime(d1)
+                end_date = pd.to_datetime(d2)
+
+        # Controllo limiti (se il calcolo va prima della data di disponibilità dati)
+        if start_date < min_date_avail:
+            start_date = min_date_avail
+        
+        # ---------------------------------------------------------
+        # FILTRO DATI
+        # ---------------------------------------------------------
+        mask = (df_metrics['Date'] >= start_date) & (df_metrics['Date'] <= end_date)
+        df_filtered = df_metrics.loc[mask].copy()
+        
+        if df_filtered.empty:
+            st.warning("⚠️ Nessun dato nel periodo selezionato.")
+        else:
+            # Ricalcolo statistiche sul periodo filtrato
+            stats = calculate_summary_stats(df_filtered)
+            
+            st.markdown(f"### Analisi di Rischio: {selected_fund}")
+            st.caption(f"Dati basati su **Quote Lorde** | Periodo: {format_date(start_date)} - {format_date(end_date)}")
+            
+            # Metric Cards
+            cols = st.columns(5)
+            metrics_list = [
+                ("Vol. 1Y Attuale", stats['vol_current']),
+                ("Vol. 3Y", stats['vol_3y']),
+                ("Vol. 5Y", stats['vol_5y']),
+                ("Vol. Max (periodo)", stats['vol_max']), # Aggiornato label per chiarezza
+                ("Max Drawdown (periodo)", stats['dd_max'])
+            ]
+            
+            for i, (label, val) in enumerate(metrics_list):
+                cols[i].metric(label, f"{val:.2f}%" if pd.notna(val) else "N/A")
+
+            # Grafico Combinato
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
+            
+            # Trace 1: Quota
+            fig.add_trace(
+                go.Scatter(
+                    x=df_filtered['Date'], 
+                    y=df_filtered['Quota'], 
+                    name="Quota Lorda", 
+                    line=dict(color='steelblue')
+                ), 
+                secondary_y=False
+            )
+            
+            # Trace 2: Volatilità
+            fig.add_trace(
+                go.Scatter(
+                    x=df_filtered['Date'], 
+                    y=df_filtered['Volatilità_1Y'], 
+                    name="Volatilità 1Y", 
+                    line=dict(color='orange', dash='dash')
+                ), 
+                secondary_y=True
+            )
+            
+            fig.update_layout(
+                title=f"{selected_fund} — Quota Lorda e Volatilità", 
+                height=500, 
+                hovermode='x unified',
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+            
+            # Assi Y
+            fig.update_yaxes(title_text="Quota (€)", secondary_y=False)
+            fig.update_yaxes(title_text="Volatilità (%)", secondary_y=True)
+            
+            st.plotly_chart(fig, use_container_width=True)
 
 # ============================================
 # FOOTER
@@ -275,6 +355,7 @@ st.markdown("""
     Analisi Volatilità (Metodologia su Quote Lorde) - Dashboard Portfolio Etica SGR
 </div>
 """, unsafe_allow_html=True)
+
 
 
 
