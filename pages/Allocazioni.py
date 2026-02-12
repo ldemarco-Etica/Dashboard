@@ -76,7 +76,7 @@ def create_allocation_charts(analyzer: PortfolioAnalyzer, fund_name: str, date: 
                         values_col = 'PesoPort_Normalized'
                         custom_hover_col = 'PesoPort'
 
-                    fig = chart_factory.create_ie_chart(
+                    fig = chart_factory.create_pie_chart(
                         sector_data.sort_values('PesoPort', ascending=False),
                         x_col='DescrizioneSector',
                         y_col='PesoPort',
