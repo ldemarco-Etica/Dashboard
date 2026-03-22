@@ -14,12 +14,12 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
-from utils import check_page_access_auth0
+#from utils import check_page_access_auth0
 
 # ============================================
 # 🔐 CONTROLLO ACCESSO
 # ============================================
-check_page_access_auth0("Limiti da CDA")
+#check_page_access_auth0("Limiti da CDA")
 
 st.set_page_config(layout="wide")
 st.title("⚖️ Analisi Limiti CDA")

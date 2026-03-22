@@ -11,12 +11,12 @@ Created on Tue Sep 30 14:49:20 2025
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from utils import check_page_access_auth0
+#from utils import check_page_access_auth0
 
 # ============================================
 # 🔐 CONTROLLO ACCESSO
 # ============================================
-check_page_access_auth0("Analisi titoli")
+#check_page_access_auth0("Analisi titoli")
 
 st.set_page_config(layout="wide")
 st.markdown("<h2 style='margin-bottom:0.2em;'>🔍 Analisi Titoli nel Portafoglio</h2>", unsafe_allow_html=True)

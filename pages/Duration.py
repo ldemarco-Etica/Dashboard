@@ -12,12 +12,12 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 from datetime import timedelta, datetime
-from utils import format_date, check_page_access_auth0
+from utils import format_date#, #check_page_access_auth0
 
 # ============================================
 # 🔐 CONTROLLO ACCESSO
 # ============================================
-check_page_access_auth0("Duration")
+#check_page_access_auth0("Duration")
 
 # === Logica della Pagina Duration ===
 st.set_page_config(layout="wide")

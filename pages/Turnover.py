@@ -20,7 +20,7 @@ from typing import Dict, List, Tuple, Optional, Any
 import logging
 
 # Import utils per autenticazione
-from utils import check_page_access_auth0, display_user_info_sidebar
+
 
 # Configurazione pagina
 st.set_page_config(
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 # VERIFICA AUTENTICAZIONE
 # ============================================================================
 
-check_page_access_auth0("Turnover")
+#check_page_access_auth0("Turnover")
 
 # ============================================================================
 # CONFIGURAZIONE
@@ -421,7 +421,7 @@ data = st.session_state['depositaria_data']
 # ============================================================================
 
 with st.sidebar:
-    display_user_info_sidebar()
+    
     st.divider()
     st.header("⚙️ Configurazione Analisi")
     

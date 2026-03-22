@@ -6,12 +6,12 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import timedelta, datetime
-from utils import format_date, check_page_access_auth0
+from utils import format_date#, check_page_access_auth0
 
 # ============================================
 # 🔐 CONTROLLO ACCESSO
 # ============================================
-check_page_access_auth0("TEV")
+#check_page_access_auth0("TEV")
 
 # === Logica della Pagina TEV ===
 st.set_page_config(layout="wide")

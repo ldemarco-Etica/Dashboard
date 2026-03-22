@@ -8,13 +8,13 @@ from datetime import datetime, timedelta
 # Importa i moduli della tua applicazione
 from config import APP_CONFIG
 from data_repository import data_repository
-from utils import ui_components, format_date, create_info_box, check_page_access_auth0
+from utils import ui_components, format_date, create_info_box#, check_page_access_auth0
 from validators import ErrorHandler
 
 # ============================================
 # 🔐 CONTROLLO ACCESSO
 # ============================================
-check_page_access_auth0("Movimentazioni")
+#check_page_access_auth0("Movimentazioni")
 
 def analyze_full_period_movements(
     portfolio_data: pd.DataFrame,

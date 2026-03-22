@@ -12,14 +12,14 @@ from data_repository import data_repository
 from models.portfolio import PortfolioAnalyzer, PerformanceAnalyzer
 from utils import (
     ui_components, chart_factory, data_exporter, 
-    format_date, format_number, create_info_box, check_page_access_auth0
+    format_date, format_number, create_info_box
 )
 from validators import ErrorHandler, safe_percentage
 
 # ============================================
 # CONTROLLO ACCESSO RUOLI
 # ============================================
-check_page_access_auth0("Allocazioni")
+#check_page_access_auth0("Allocazioni")
 
 logger = logging.getLogger(__name__)
 
