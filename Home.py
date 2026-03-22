@@ -8,11 +8,10 @@ from datetime import datetime, time as dt_time
 from config import APP_CONFIG, DATA_PATHS
 from utils import (
     data_loader, session_manager, create_info_box, format_date, 
-    hide_unauthorized_pages, display_user_info_sidebar, check_page_access, initialize_user_session,
-    display_user_info_sidebar_auth0, hide_unauthorized_pages_auth0  # <-- AGGIUNTE QUESTE
+      # <-- AGGIUNTE QUESTE
 )
 from validators import ErrorHandler
-from auth_manager import auth_manager  
+ 
 
 # Setup logging
 logging.basicConfig(
@@ -281,24 +280,7 @@ def display_sidebar_controls():
         
         st.divider()
         
-        # 🆕 DEBUG AUTENTICAZIONE (sempre visibile)
-        with st.expander("🐛 Auth Debug", expanded=False):
-            st.json({
-                'email': st.session_state.get('user_email', 'N/A'),
-                'role': st.session_state.get('user_role', 'N/A'),
-                'permissions_count': len(st.session_state.get('user_permissions', [])),
-                'is_authenticated': st.session_state.get('is_authenticated', False),
-                'is_dev_mode': st.session_state.get('is_dev_mode', False),
-                'auth_initialized': st.session_state.get('auth_initialized', False)
-            })
-            
-            # Mostra tutte le permissioni
-            if 'user_permissions' in st.session_state:
-                st.caption("**Pagine Accessibili:**")
-                for perm in st.session_state['user_permissions']:
-                    st.caption(f"✅ {perm}")
-        # Help section
-        st.subheader("❓ Help & Support")
+
         
         with st.expander("📚 Quick Help"):
             st.markdown("""
@@ -330,32 +312,7 @@ def main():
         # ⏰ CONTROLLO RESTART AUTOMATICO
         # ============================================
         check_scheduled_restart()
-        # ============================================
-        # 🔐 AUTENTICAZIONE AUTH0
-        # ============================================
-
-        
-        # Gestisci callback Auth0
-        query_params = st.query_params
-        if 'code' in query_params:
-            # Siamo in fase di callback dopo login
-            with st.spinner("🔄 Completamento autenticazione..."):
-                success = auth_manager.handle_callback(query_params)
-                
-                if success:
-                    # Pulisci URL rimuovendo parametri callback
-                    st.query_params.clear()
-                    st.success("✅ Accesso effettuato con successo!")
-                    st.rerun()
-                else:
-                    st.error("❌ Autenticazione fallita. Riprova.")
-                    st.stop()
-        
-        # Verifica autenticazione
-        if not auth_manager.is_authenticated():
-            # Mostra pulsante login
-            auth_manager.show_login_button()
-            st.stop()
+ 
         
         # ============================================
         # 📊 UTENTE AUTENTICATO - Mostra Dashboard
@@ -367,9 +324,7 @@ def main():
         # Sidebar controls
         display_sidebar_controls()
         
-        # ✅ CORREZIONE: Usa le funzioni Auth0
-        display_user_info_sidebar_auth0()  
-        hide_unauthorized_pages_auth0()    
+
         
         # Auto-load data (resto del codice rimane uguale...)
         if not st.session_state.get('data_loaded', False):
